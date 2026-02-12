@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-primary: #6366f1;
+  --brand-secondary: #a855f7;
+  --brand-bg-light: rgba(99, 102, 241, 0.1);
+  --brand-bg-accent: rgba(168, 85, 247, 0.1);
+}
+
+.theme-forest {
+  --brand-primary: #059669;
+  --brand-secondary: #10b981;
+  --brand-bg-light: rgba(5, 150, 105, 0.1);
+  --brand-bg-accent: rgba(16, 185, 129, 0.1);
+}
+
+.theme-rose {
+  --brand-primary: #f43f5e;
+  --brand-secondary: #fb923c;
+  --brand-bg-light: rgba(244, 63, 94, 0.1);
+  --brand-bg-accent: rgba(251, 146, 60, 0.1);
+}
+
+.theme-ocean {
+  --brand-primary: #0284c7;
+  --brand-secondary: #2dd4bf;
+  --brand-bg-light: rgba(2, 132, 199, 0.1);
+  --brand-bg-accent: rgba(45, 212, 191, 0.1);
+}
+
+.theme-hermes {
+  --brand-primary: #FF7F00;
+  --brand-secondary: #FAAB36;
+  --brand-bg-light: rgba(255, 127, 0, 0.1);
+  --brand-bg-accent: rgba(250, 171, 54, 0.1);
+}
+
+body {
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  scroll-behavior: smooth;
+  transition: background-color 0.5s ease;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at top right, var(--brand-bg-light), transparent),
+              radial-gradient(circle at bottom left, var(--brand-bg-accent), transparent);
+  transition: background 0.5s ease;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+/* Custom brand colors */
+.bg-brand-primary { background-color: var(--brand-primary); }
+.text-brand-primary { color: var(--brand-primary); }
+.border-brand-primary { border-color: var(--brand-primary); }
+.shadow-brand-primary\/20 { box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--brand-primary) 20%, transparent); }
+.ring-brand-primary\/10 { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 10%, transparent); }
+.ring-brand-primary\/20 { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 20%, transparent); }
+.hover\:text-brand-primary:hover { color: var(--brand-primary); }
+.hover\:border-brand-primary:hover { border-color: var(--brand-primary); }
+.hover\:bg-brand-primary:hover { background-color: var(--brand-primary); }
+.focus\:border-brand-primary:focus { border-color: var(--brand-primary); }
+.focus\:ring-brand-primary\/10:focus { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 10%, transparent); }
+.group-hover\:text-brand-primary:hover { color: var(--brand-primary); }
+.group-hover\:bg-brand-primary { background-color: var(--brand-primary); }
+
+/* Animations */
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(20px, -30px) scale(1.1); }
+  50% { transform: translate(-20px, 20px) scale(0.9); }
+  75% { transform: translate(30px, 10px) scale(1.05); }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}

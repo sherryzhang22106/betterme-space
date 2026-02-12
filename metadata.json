@@ -1,0 +1,8 @@
+
+{
+  "name": "BetterMe Space - 觅我空间",
+  "description": "一个前沿的性格分析与内在探索平台，利用 AI 技术助你洞察真实自我与精神状态。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
