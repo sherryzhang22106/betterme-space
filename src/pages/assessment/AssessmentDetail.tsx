@@ -4,9 +4,8 @@ import { ASSESSMENTS } from '../../constants';
 
 // iframe 内嵌的现有测评 URL 映射
 const EMBEDDED_ASSESSMENTS: Record<string, string> = {
-  'lying-flat': 'https://lying-flat.example.com', // 替换为实际的躺平指数 URL
-  'internal-friction': 'https://internal-friction.example.com', // 替换为实际的内耗指数 URL
-  // 后续添加更多...
+  'lying-flat': 'https://lying.bettermee.cn/',
+  'internal-friction': 'https://hao.bettermee.cn/',
 };
 
 const AssessmentDetail: React.FC = () => {
