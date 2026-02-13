@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --brand-primary: #6366f1;
@@ -70,16 +68,6 @@ body {
 .bg-brand-primary { background-color: var(--brand-primary); }
 .text-brand-primary { color: var(--brand-primary); }
 .border-brand-primary { border-color: var(--brand-primary); }
-.shadow-brand-primary\/20 { box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--brand-primary) 20%, transparent); }
-.ring-brand-primary\/10 { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 10%, transparent); }
-.ring-brand-primary\/20 { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 20%, transparent); }
-.hover\:text-brand-primary:hover { color: var(--brand-primary); }
-.hover\:border-brand-primary:hover { border-color: var(--brand-primary); }
-.hover\:bg-brand-primary:hover { background-color: var(--brand-primary); }
-.focus\:border-brand-primary:focus { border-color: var(--brand-primary); }
-.focus\:ring-brand-primary\/10:focus { --tw-ring-color: color-mix(in srgb, var(--brand-primary) 10%, transparent); }
-.group-hover\:text-brand-primary:hover { color: var(--brand-primary); }
-.group-hover\:bg-brand-primary { background-color: var(--brand-primary); }
 
 /* Animations */
 @keyframes blob {
