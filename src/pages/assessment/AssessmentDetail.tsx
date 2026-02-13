@@ -55,7 +55,7 @@ const AssessmentDetail: React.FC = () => {
   if (embedUrl && started) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between h-14">
           <button
             onClick={() => setStarted(false)}
             className="flex items-center text-slate-500 hover:text-brand-primary transition-colors"
@@ -70,8 +70,8 @@ const AssessmentDetail: React.FC = () => {
         </div>
         <iframe
           src={embedUrl}
-          className="w-full h-screen pt-14"
-          frameBorder="0"
+          className="fixed top-14 left-0 right-0 bottom-0 w-full border-0"
+          style={{ height: 'calc(100vh - 56px)' }}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
