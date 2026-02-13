@@ -11,6 +11,7 @@ import AssessmentCenter from './components/AssessmentCenter';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UserCenter from './pages/user/UserCenter';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import { ASSESSMENTS } from './constants';
 import { AssessmentCategory } from './types';
 
@@ -152,12 +153,14 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 判断是否是认证页面（不显示导航栏和底部）
+  // 判断是否是认证页面或管理后台（不显示导航栏和底部）
   const isAuthPage = location.pathname.startsWith('/auth');
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const hideLayout = isAuthPage || isAdminPage;
 
   return (
     <div className="min-h-screen bg-white transition-colors duration-500 overflow-x-hidden">
-      {!isAuthPage && (
+      {!hideLayout && (
         <nav onClick={(e) => {
           const target = e.target as HTMLElement;
           if (target.closest('.logo-link')) handleLogoClick();
@@ -173,13 +176,14 @@ const App: React.FC = () => {
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/user" element={<UserCenter />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/assessment-center" element={<AssessmentCenter onBack={() => navigate('/')} />} />
           <Route path="/ai-principles" element={<AIPrinciples onBack={() => navigate('/')} />} />
           <Route path="/terms/:type" element={<TermsWrapper />} />
         </Routes>
 
         {/* Floating Contact */}
-        {!isAuthPage && (
+        {!hideLayout && (
           <div className="fixed bottom-8 right-8 z-40">
             <button className="w-16 h-16 bg-white border border-slate-100 text-brand-primary rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-500 group">
               <svg className="w-6 h-6 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" strokeWidth="2.5"/></svg>
@@ -188,7 +192,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {!isAuthPage && <Footer onNavigate={(view) => navigate(`/${view === 'home' ? '' : view}`)} />}
+      {!hideLayout && <Footer onNavigate={(view) => navigate(`/${view === 'home' ? '' : view}`)} />}
     </div>
   );
 };
