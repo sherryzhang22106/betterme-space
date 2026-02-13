@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Assessment } from '../types';
 
 interface Props {
@@ -6,8 +7,18 @@ interface Props {
 }
 
 const AssessmentCard: React.FC<Props> = ({ assessment }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (!assessment.isLocked) {
+      navigate(`/assessment/${assessment.id}`);
+    }
+  };
+
   return (
-    <div className={`group relative rounded-[2.5rem] overflow-hidden transition-all duration-700 flex flex-col h-full bg-white border border-slate-100
+    <div
+      onClick={handleClick}
+      className={`group relative rounded-[2.5rem] overflow-hidden transition-all duration-700 flex flex-col h-full bg-white border border-slate-100
       ${assessment.isLocked
         ? 'cursor-default'
         : 'shadow-sm hover:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.08)] hover:-translate-y-2 cursor-pointer'

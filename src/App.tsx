@@ -12,6 +12,9 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UserCenter from './pages/user/UserCenter';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AssessmentDetail from './pages/assessment/AssessmentDetail';
+import QuizPage from './pages/assessment/QuizPage';
+import ResultPage from './pages/assessment/ResultPage';
 import { ASSESSMENTS } from './constants';
 import { AssessmentCategory } from './types';
 
@@ -153,10 +156,11 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 判断是否是认证页面或管理后台（不显示导航栏和底部）
+  // 判断是否是认证页面或管理后台或测评页面（不显示导航栏和底部）
   const isAuthPage = location.pathname.startsWith('/auth');
   const isAdminPage = location.pathname.startsWith('/admin');
-  const hideLayout = isAuthPage || isAdminPage;
+  const isQuizPage = location.pathname.includes('/quiz') || location.pathname.includes('/result');
+  const hideLayout = isAuthPage || isAdminPage || isQuizPage;
 
   return (
     <div className="min-h-screen bg-white transition-colors duration-500 overflow-x-hidden">
@@ -177,6 +181,9 @@ const App: React.FC = () => {
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/user" element={<UserCenter />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/assessment/:id" element={<AssessmentDetail />} />
+          <Route path="/assessment/:id/quiz" element={<QuizPage />} />
+          <Route path="/assessment/:id/result/:recordId" element={<ResultPage />} />
           <Route path="/assessment-center" element={<AssessmentCenter onBack={() => navigate('/')} />} />
           <Route path="/ai-principles" element={<AIPrinciples onBack={() => navigate('/')} />} />
           <Route path="/terms/:type" element={<TermsWrapper />} />
