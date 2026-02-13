@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ASSESSMENTS } from '../constants';
+import { ASSESSMENTS } from '../../constants';
 
 // iframe 内嵌的现有测评 URL 映射
 const EMBEDDED_ASSESSMENTS: Record<string, string> = {
