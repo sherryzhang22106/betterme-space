@@ -51,27 +51,23 @@ const AssessmentDetail: React.FC = () => {
     );
   }
 
-  // 如果有 iframe 嵌入 URL，显示嵌入页面
+  // 如果有 iframe 嵌入 URL，显示全屏嵌入页面
   if (embedUrl && started) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between h-14">
-          <button
-            onClick={() => setStarted(false)}
-            className="flex items-center text-slate-500 hover:text-brand-primary transition-colors"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            退出测评
-          </button>
-          <span className="text-sm font-bold text-slate-900">{assessment.title}</span>
-          <div className="w-20"></div>
-        </div>
+      <div className="fixed inset-0 z-[100] bg-white">
+        {/* 悬浮退出按钮 */}
+        <button
+          onClick={() => setStarted(false)}
+          className="fixed top-4 left-4 z-[101] flex items-center px-4 py-2 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-full shadow-lg text-slate-600 hover:text-brand-primary transition-colors"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span className="text-sm font-medium">退出</span>
+        </button>
         <iframe
           src={embedUrl}
-          className="fixed top-14 left-0 right-0 bottom-0 w-full border-0"
-          style={{ height: 'calc(100vh - 56px)' }}
+          className="w-full h-full border-0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
