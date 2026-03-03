@@ -1,17 +1,39 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import { verifyAdmin, unauthorizedResponse, forbiddenResponse } from '../../../lib/auth';
+import * as jwt from 'jsonwebtoken';
 
 const sql = neon(process.env.DATABASE_URL!);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// 内联权限验证
+async function verifyAdmin(req: VercelRequest): Promise<{ isAdmin: boolean; userId?: string }> {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { isAdmin: false };
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+
+    if (!decoded.userId) {
+      return { isAdmin: false };
+    }
+
+    const [user] = await sql`SELECT id, role FROM users WHERE id = ${decoded.userId}`;
+    return { isAdmin: user && user.role === 'admin', userId: decoded.userId };
+  } catch (error) {
+    return { isAdmin: false };
+  }
+}
 
 // 生成随机兑换码
 function generateCode(length: number = 12): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 去掉易混淆的字符
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < length; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  // 格式化为 XXXX-XXXX-XXXX
   return code.match(/.{1,4}/g)?.join('-') || code;
 }
 
@@ -23,10 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 验证管理员权限
   const auth = await verifyAdmin(req);
   if (!auth.isAdmin) {
-    if (auth.error === '未提供认证令牌' || auth.error === '无效的认证令牌') {
-      return unauthorizedResponse(res, auth.error);
-    }
-    return forbiddenResponse(res, auth.error);
+    return res.status(401).json({ success: false, message: '未授权访问' });
   }
 
   try {
@@ -46,7 +65,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     for (let i = 0; i < count; i++) {
       let code = generateCode();
-      // 确保不重复
       while (codes.includes(code)) {
         code = generateCode();
       }

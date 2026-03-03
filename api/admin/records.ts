@@ -1,8 +1,31 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import { verifyAdmin, unauthorizedResponse, forbiddenResponse } from '../../lib/auth';
+import * as jwt from 'jsonwebtoken';
 
 const sql = neon(process.env.DATABASE_URL!);
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// 内联权限验证
+async function verifyAdmin(req: VercelRequest): Promise<boolean> {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return false;
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+
+    if (!decoded.userId) {
+      return false;
+    }
+
+    const [user] = await sql`SELECT role FROM users WHERE id = ${decoded.userId}`;
+    return user && user.role === 'admin';
+  } catch (error) {
+    return false;
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -10,12 +33,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 验证管理员权限
-  const auth = await verifyAdmin(req);
-  if (!auth.isAdmin) {
-    if (auth.error === '未提供认证令牌' || auth.error === '无效的认证令牌') {
-      return unauthorizedResponse(res, auth.error);
-    }
-    return forbiddenResponse(res, auth.error);
+  const isAdmin = await verifyAdmin(req);
+  if (!isAdmin) {
+    return res.status(401).json({ success: false, message: '未授权访问' });
   }
 
   try {
