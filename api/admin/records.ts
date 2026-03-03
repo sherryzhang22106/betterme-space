@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import { verifyAdmin, unauthorizedResponse, forbiddenResponse } from '../lib/auth';
+import { verifyAdmin, unauthorizedResponse, forbiddenResponse } from '../../lib/auth';
 
 const sql = neon(process.env.DATABASE_URL!);
 
