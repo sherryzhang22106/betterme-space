@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuthStore } from '../../stores/authStore';
 
 interface CodeStats {
   total: number;
@@ -29,9 +28,10 @@ interface RedemptionCode {
 }
 
 const CodesManagement: React.FC = () => {
-  const { token } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'generate' | 'list' | 'stats'>('stats');
   const [loading, setLoading] = useState(false);
+
+  const token = localStorage.getItem('admin_token');
 
   // 生成兑换码表单
   const [generateForm, setGenerateForm] = useState({

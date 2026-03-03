@@ -6,7 +6,7 @@ const sql = neon(process.env.DATABASE_URL!);
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // 内联权限验证
-async function verifyAdmin(req: VercelRequest): Promise<{ isAdmin: boolean; userId?: string }> {
+async function verifyAdmin(req: VercelRequest): Promise<{ isAdmin: boolean; adminId?: string }> {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -14,14 +14,20 @@ async function verifyAdmin(req: VercelRequest): Promise<{ isAdmin: boolean; user
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { adminId?: string; userId?: string; role?: string };
 
-    if (!decoded.userId) {
-      return { isAdmin: false };
+    // 支持两种 token：新的 adminId 和旧的 userId
+    if (decoded.adminId) {
+      // 新的管理员 token
+      const [admin] = await sql`SELECT id, role FROM admins WHERE id = ${decoded.adminId}`;
+      return { isAdmin: admin && admin.role === 'admin', adminId: decoded.adminId };
+    } else if (decoded.userId) {
+      // 兼容旧的用户 token（临时）
+      const [user] = await sql`SELECT id, role FROM users WHERE id = ${decoded.userId}`;
+      return { isAdmin: user && user.role === 'admin', adminId: decoded.userId };
     }
 
-    const [user] = await sql`SELECT id, role FROM users WHERE id = ${decoded.userId}`;
-    return { isAdmin: user && user.role === 'admin', userId: decoded.userId };
+    return { isAdmin: false };
   } catch (error) {
     return { isAdmin: false };
   }
@@ -73,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const code of codes) {
         const [result] = await sql`
           INSERT INTO redemption_codes (code, product_id, product_name, batch_no, created_by, expires_at, notes)
-          VALUES (${code}, ${productId}, ${productName}, ${batchNo || null}, ${auth.userId}, ${expiresAt || null}, ${notes || null})
+          VALUES (${code}, ${productId}, ${productName}, ${batchNo || null}, ${auth.adminId}, ${expiresAt || null}, ${notes || null})
           RETURNING id, code, product_id, product_name, batch_no, status, created_at
         `;
         generatedCodes.push(result);

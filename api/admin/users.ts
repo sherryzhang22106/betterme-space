@@ -14,14 +14,20 @@ async function verifyAdmin(req: VercelRequest): Promise<boolean> {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as { adminId?: string; userId?: string; role?: string };
 
-    if (!decoded.userId) {
-      return false;
+    // 支持两种 token：新的 adminId 和旧的 userId
+    if (decoded.adminId) {
+      // 新的管理员 token
+      const [admin] = await sql`SELECT id, role FROM admins WHERE id = ${decoded.adminId}`;
+      return admin && admin.role === 'admin';
+    } else if (decoded.userId) {
+      // 兼容旧的用户 token（临时）
+      const [user] = await sql`SELECT role FROM users WHERE id = ${decoded.userId}`;
+      return user && user.role === 'admin';
     }
 
-    const [user] = await sql`SELECT role FROM users WHERE id = ${decoded.userId}`;
-    return user && user.role === 'admin';
+    return false;
   } catch (error) {
     return false;
   }

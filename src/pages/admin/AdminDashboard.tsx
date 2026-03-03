@@ -29,22 +29,34 @@ interface Record {
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, token, isLoggedIn } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'records' | 'codes'>('overview');
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalRecords: 0, todayUsers: 0, todayRecords: 0 });
   const [users, setUsers] = useState<User[]>([]);
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminUser, setAdminUser] = useState<any>(null);
 
   useEffect(() => {
-    if (!isLoggedIn()) {
-      navigate('/auth/login');
+    // 检查管理员登录状态
+    const token = localStorage.getItem('admin_token');
+    const user = localStorage.getItem('admin_user');
+
+    if (!token || !user) {
+      navigate('/admin/login');
       return;
     }
+
+    setAdminUser(JSON.parse(user));
     fetchData();
   }, [activeTab]);
 
   const fetchData = async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      navigate('/admin/login');
+      return;
+    }
+
     setLoading(true);
     try {
       if (activeTab === 'overview') {
@@ -54,6 +66,10 @@ const AdminDashboard: React.FC = () => {
         const data = await res.json();
         if (data.success) {
           setStats(data.stats);
+        } else if (data.message === '未授权访问') {
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_user');
+          navigate('/admin/login');
         } else {
           alert(data.message || '获取数据失败');
         }
@@ -64,6 +80,10 @@ const AdminDashboard: React.FC = () => {
         const data = await res.json();
         if (data.success) {
           setUsers(data.users);
+        } else if (data.message === '未授权访问') {
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_user');
+          navigate('/admin/login');
         } else {
           alert(data.message || '获取数据失败');
         }
@@ -74,6 +94,10 @@ const AdminDashboard: React.FC = () => {
         const data = await res.json();
         if (data.success) {
           setRecords(data.records);
+        } else if (data.message === '未授权访问') {
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_user');
+          navigate('/admin/login');
         } else {
           alert(data.message || '获取数据失败');
         }
@@ -99,7 +123,17 @@ const AdminDashboard: React.FC = () => {
             </Link>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-slate-500">{user?.account}</span>
+            <span className="text-sm text-slate-500">{adminUser?.username}</span>
+            <button
+              onClick={() => {
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('admin_user');
+                navigate('/admin/login');
+              }}
+              className="text-sm text-rose-600 hover:underline"
+            >
+              退出登录
+            </button>
             <Link to="/" className="text-sm text-brand-primary hover:underline">返回前台</Link>
           </div>
         </div>

@@ -11,6 +11,7 @@ import AssessmentCenter from './components/AssessmentCenter';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import UserCenter from './pages/user/UserCenter';
+import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AssessmentDetail from './pages/assessment/AssessmentDetail';
 import QuizPage from './pages/assessment/QuizPage';
@@ -180,6 +181,7 @@ const App: React.FC = () => {
           <Route path="/auth/login" element={<LoginPage />} />
           <Route path="/auth/register" element={<RegisterPage />} />
           <Route path="/user" element={<UserCenter />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/assessment/:id" element={<AssessmentDetail />} />
           <Route path="/assessment/:id/quiz" element={<QuizPage />} />
