@@ -75,7 +75,7 @@ const CodesManagement: React.FC = () => {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/codes/stats', {
+      const res = await fetch('/api/admin/codes?action=stats', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -92,11 +92,11 @@ const CodesManagement: React.FC = () => {
   const fetchCodes = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ action: 'list' });
       if (filterStatus) params.append('status', filterStatus);
       if (filterProduct) params.append('productId', filterProduct);
 
-      const res = await fetch(`/api/admin/codes/list?${params}`, {
+      const res = await fetch(`/api/admin/codes?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -117,7 +117,7 @@ const CodesManagement: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/codes/generate', {
+      const res = await fetch('/api/admin/codes?action=generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
