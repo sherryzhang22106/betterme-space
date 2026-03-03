@@ -29,7 +29,7 @@ interface Record {
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isLoggedIn } = useAuthStore();
+  const { user, token, isLoggedIn } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'records' | 'codes'>('overview');
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalRecords: 0, todayUsers: 0, todayRecords: 0 });
   const [users, setUsers] = useState<User[]>([]);
@@ -48,20 +48,39 @@ const AdminDashboard: React.FC = () => {
     setLoading(true);
     try {
       if (activeTab === 'overview') {
-        const res = await fetch('/api/admin/stats');
+        const res = await fetch('/api/admin/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
-        if (data.success) setStats(data.stats);
+        if (data.success) {
+          setStats(data.stats);
+        } else {
+          alert(data.message || '获取数据失败');
+        }
       } else if (activeTab === 'users') {
-        const res = await fetch('/api/admin/users');
+        const res = await fetch('/api/admin/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
-        if (data.success) setUsers(data.users);
+        if (data.success) {
+          setUsers(data.users);
+        } else {
+          alert(data.message || '获取数据失败');
+        }
       } else if (activeTab === 'records') {
-        const res = await fetch('/api/admin/records');
+        const res = await fetch('/api/admin/records', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         const data = await res.json();
-        if (data.success) setRecords(data.records);
+        if (data.success) {
+          setRecords(data.records);
+        } else {
+          alert(data.message || '获取数据失败');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      alert('获取数据失败，请重试');
     }
     setLoading(false);
   };

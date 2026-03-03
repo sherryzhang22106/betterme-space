@@ -1,10 +1,21 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
+import { verifyAdmin, unauthorizedResponse, forbiddenResponse } from '../lib/auth';
 
 const sql = neon(process.env.DATABASE_URL!);
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: '方法不允许' });
+  }
+
+  // 验证管理员权限
+  const auth = await verifyAdmin(req);
+  if (!auth.isAdmin) {
+    if (auth.error === '未提供认证令牌' || auth.error === '无效的认证令牌') {
+      return unauthorizedResponse(res, auth.error);
+    }
+    return forbiddenResponse(res, auth.error);
   }
 
   try {

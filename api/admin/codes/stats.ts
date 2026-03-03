@@ -1,29 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import jwt from 'jsonwebtoken';
+import { verifyAdmin, unauthorizedResponse, forbiddenResponse } from '../../lib/auth';
 
 const sql = neon(process.env.DATABASE_URL!);
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, message: '方法不允许' });
   }
 
+  // 验证管理员权限
+  const auth = await verifyAdmin(req);
+  if (!auth.isAdmin) {
+    if (auth.error === '未提供认证令牌' || auth.error === '无效的认证令牌') {
+      return unauthorizedResponse(res, auth.error);
+    }
+    return forbiddenResponse(res, auth.error);
+  }
+
   try {
-    // 验证管理员权限
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ success: false, message: '未授权' });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    const [user] = await sql`SELECT role FROM users WHERE id = ${decoded.userId}`;
-
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: '无权限' });
-    }
-
     // 统计数据
     const [totalCodes] = await sql`SELECT COUNT(*) as count FROM redemption_codes`;
     const [usedCodes] = await sql`SELECT COUNT(*) as count FROM redemption_codes WHERE status = 'used'`;

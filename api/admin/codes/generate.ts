@@ -1,9 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import jwt from 'jsonwebtoken';
+import { verifyAdmin, unauthorizedResponse, forbiddenResponse } from '../../lib/auth';
 
 const sql = neon(process.env.DATABASE_URL!);
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // 生成随机兑换码
 function generateCode(length: number = 12): string {
@@ -21,20 +20,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ success: false, message: '方法不允许' });
   }
 
+  // 验证管理员权限
+  const auth = await verifyAdmin(req);
+  if (!auth.isAdmin) {
+    if (auth.error === '未提供认证令牌' || auth.error === '无效的认证令牌') {
+      return unauthorizedResponse(res, auth.error);
+    }
+    return forbiddenResponse(res, auth.error);
+  }
+
   try {
-    // 验证管理员权限
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      return res.status(401).json({ success: false, message: '未授权' });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    const [user] = await sql`SELECT role FROM users WHERE id = ${decoded.userId}`;
-
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: '无权限' });
-    }
-
     const { productId, productName, count = 1, batchNo, expiresAt, notes } = req.body;
 
     if (!productId || !productName) {
@@ -62,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const code of codes) {
       const [result] = await sql`
         INSERT INTO redemption_codes (code, product_id, product_name, batch_no, created_by, expires_at, notes)
-        VALUES (${code}, ${productId}, ${productName}, ${batchNo || null}, ${decoded.userId}, ${expiresAt || null}, ${notes || null})
+        VALUES (${code}, ${productId}, ${productName}, ${batchNo || null}, ${auth.userId}, ${expiresAt || null}, ${notes || null})
         RETURNING id, code, product_id, product_name, batch_no, status, created_at
       `;
       generatedCodes.push(result);
