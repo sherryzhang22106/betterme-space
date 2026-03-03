@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import CodesManagement from './CodesManagement';
 
 interface Stats {
   totalUsers: number;
@@ -29,7 +30,7 @@ interface Record {
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'records'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'records' | 'codes'>('overview');
   const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalRecords: 0, todayUsers: 0, todayRecords: 0 });
   const [users, setUsers] = useState<User[]>([]);
   const [records, setRecords] = useState<Record[]>([]);
@@ -92,6 +93,7 @@ const AdminDashboard: React.FC = () => {
             { key: 'overview', label: '数据概览' },
             { key: 'users', label: '用户管理' },
             { key: 'records', label: '测评记录' },
+            { key: 'codes', label: '兑换码管理' },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -192,6 +194,9 @@ const AdminDashboard: React.FC = () => {
                 </table>
               </div>
             )}
+
+            {/* Codes Tab */}
+            {activeTab === 'codes' && <CodesManagement />}
           </>
         )}
       </div>
