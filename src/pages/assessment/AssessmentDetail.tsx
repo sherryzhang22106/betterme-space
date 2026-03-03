@@ -6,6 +6,7 @@ import { ASSESSMENTS } from '../../constants';
 const EMBEDDED_ASSESSMENTS: Record<string, string> = {
   'lying-flat': 'https://lying.bettermee.cn/',
   'internal-friction': 'https://hao.bettermee.cn/',
+  'attachment-style': 'https://asa.bettermee.cc/',
 };
 
 const AssessmentDetail: React.FC = () => {
