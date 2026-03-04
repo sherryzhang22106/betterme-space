@@ -35,9 +35,10 @@ const AdminDashboard: React.FC = () => {
   const [records, setRecords] = useState<Record[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminUser, setAdminUser] = useState<any>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // 初始化：检查登录状态
   useEffect(() => {
-    // 检查管理员登录状态
     const token = localStorage.getItem('admin_token');
     const user = localStorage.getItem('admin_user');
 
@@ -46,9 +47,22 @@ const AdminDashboard: React.FC = () => {
       return;
     }
 
-    setAdminUser(JSON.parse(user));
+    try {
+      setAdminUser(JSON.parse(user));
+      setIsInitialized(true);
+    } catch (err) {
+      console.error('解析用户信息失败:', err);
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      navigate('/admin/login');
+    }
+  }, []);
+
+  // 获取数据
+  useEffect(() => {
+    if (!isInitialized) return;
     fetchData();
-  }, [activeTab]);
+  }, [activeTab, isInitialized]);
 
   const fetchData = async () => {
     const token = localStorage.getItem('admin_token');
