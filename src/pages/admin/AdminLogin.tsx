@@ -14,6 +14,8 @@ const AdminLogin: React.FC = () => {
     setError('');
     setLoading(true);
 
+    console.log('开始登录...', { username, password: '***' });
+
     try {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
@@ -21,16 +23,25 @@ const AdminLogin: React.FC = () => {
         body: JSON.stringify({ username, password })
       });
 
+      console.log('登录响应状态:', res.status, res.ok);
+
       const data = await res.json();
+      console.log('登录响应数据:', data);
 
       if (res.ok && data.success) {
+        console.log('登录成功，保存 token...');
         // 保存 token 到 localStorage
         localStorage.setItem('admin_token', data.token);
         localStorage.setItem('admin_user', JSON.stringify(data.admin));
 
+        console.log('Token 已保存:', localStorage.getItem('admin_token'));
+        console.log('User 已保存:', localStorage.getItem('admin_user'));
+
         // 跳转到管理后台
+        console.log('跳转到 /admin');
         navigate('/admin');
       } else {
+        console.error('登录失败:', data);
         setError(data.message || '登录失败');
       }
     } catch (err) {
