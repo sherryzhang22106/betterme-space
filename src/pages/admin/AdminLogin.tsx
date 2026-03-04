@@ -37,9 +37,11 @@ const AdminLogin: React.FC = () => {
         console.log('Token 已保存:', localStorage.getItem('admin_token'));
         console.log('User 已保存:', localStorage.getItem('admin_user'));
 
-        // 跳转到管理后台
-        console.log('跳转到 /admin');
-        navigate('/admin');
+        // 等待一下确保 localStorage 写入完成，然后跳转
+        setTimeout(() => {
+          console.log('跳转到 /admin');
+          window.location.href = '/admin';
+        }, 100);
       } else {
         console.error('登录失败:', data);
         setError(data.message || '登录失败');
