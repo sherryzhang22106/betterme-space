@@ -31,26 +31,36 @@ const AdminLogin: React.FC = () => {
       if (res.ok && data.success) {
         console.log('登录成功，保存 token...');
 
-        // 保存 token 到 localStorage
+        // 先清空旧数据
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+
+        // 保存新数据
         localStorage.setItem('admin_token', data.token);
         localStorage.setItem('admin_user', JSON.stringify(data.admin));
 
-        // 立即验证是否保存成功
-        const savedToken = localStorage.getItem('admin_token');
-        const savedUser = localStorage.getItem('admin_user');
+        // 多次验证是否保存成功
+        setTimeout(() => {
+          const savedToken = localStorage.getItem('admin_token');
+          const savedUser = localStorage.getItem('admin_user');
 
-        console.log('Token 已保存:', savedToken ? '✅ 成功' : '❌ 失败');
-        console.log('User 已保存:', savedUser ? '✅ 成功' : '❌ 失败');
+          console.log('验证保存结果:');
+          console.log('  Token:', savedToken ? '✅ 存在' : '❌ 不存在');
+          console.log('  User:', savedUser ? '✅ 存在' : '❌ 不存在');
 
-        if (!savedToken || !savedUser) {
-          setError('保存登录信息失败，请重试');
-          setLoading(false);
-          return;
-        }
+          if (!savedToken || !savedUser) {
+            setError('保存登录信息失败，请重试');
+            setLoading(false);
+            return;
+          }
 
-        // 使用 navigate 跳转，不刷新页面
-        console.log('跳转到 /admin');
-        navigate('/admin', { replace: true });
+          // 跳转前再次确认
+          console.log('跳转前最后确认:');
+          console.log('  Token:', localStorage.getItem('admin_token') ? '✅' : '❌');
+          console.log('跳转到 /admin');
+
+          navigate('/admin', { replace: true });
+        }, 200);
       } else {
         console.error('登录失败:', data);
         setError(data.message || '登录失败');
