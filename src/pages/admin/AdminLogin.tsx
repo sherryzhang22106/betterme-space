@@ -30,18 +30,27 @@ const AdminLogin: React.FC = () => {
 
       if (res.ok && data.success) {
         console.log('登录成功，保存 token...');
+
         // 保存 token 到 localStorage
         localStorage.setItem('admin_token', data.token);
         localStorage.setItem('admin_user', JSON.stringify(data.admin));
 
-        console.log('Token 已保存:', localStorage.getItem('admin_token'));
-        console.log('User 已保存:', localStorage.getItem('admin_user'));
+        // 立即验证是否保存成功
+        const savedToken = localStorage.getItem('admin_token');
+        const savedUser = localStorage.getItem('admin_user');
 
-        // 等待一下确保 localStorage 写入完成，然后跳转
-        setTimeout(() => {
-          console.log('跳转到 /admin');
-          window.location.href = '/admin';
-        }, 100);
+        console.log('Token 已保存:', savedToken ? '✅ 成功' : '❌ 失败');
+        console.log('User 已保存:', savedUser ? '✅ 成功' : '❌ 失败');
+
+        if (!savedToken || !savedUser) {
+          setError('保存登录信息失败，请重试');
+          setLoading(false);
+          return;
+        }
+
+        // 使用 navigate 跳转，不刷新页面
+        console.log('跳转到 /admin');
+        navigate('/admin', { replace: true });
       } else {
         console.error('登录失败:', data);
         setError(data.message || '登录失败');
