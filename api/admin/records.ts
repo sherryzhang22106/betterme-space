@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 const sql = neon(process.env.DATABASE_URL!);
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
