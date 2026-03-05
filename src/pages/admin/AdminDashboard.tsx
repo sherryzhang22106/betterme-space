@@ -72,7 +72,10 @@ const AdminDashboard: React.FC = () => {
 
   const fetchData = async () => {
     const token = localStorage.getItem('admin_token');
+    console.log('fetchData - 读取 token:', token ? `${token.substring(0, 20)}...` : 'null');
+
     if (!token) {
+      console.log('fetchData - token 不存在，跳转登录');
       navigate('/admin/login');
       return;
     }
@@ -80,13 +83,18 @@ const AdminDashboard: React.FC = () => {
     setLoading(true);
     try {
       if (activeTab === 'overview') {
+        console.log('fetchData - 请求 /api/admin/stats');
         const res = await fetch('/api/admin/stats', {
           headers: { Authorization: `Bearer ${token}` }
         });
+        console.log('fetchData - 响应状态:', res.status);
         const data = await res.json();
+        console.log('fetchData - 响应数据:', data);
+
         if (data.success) {
           setStats(data.stats);
         } else if (data.message === '未授权访问') {
+          console.log('fetchData - 未授权，清空 localStorage');
           localStorage.removeItem('admin_token');
           localStorage.removeItem('admin_user');
           navigate('/admin/login');
