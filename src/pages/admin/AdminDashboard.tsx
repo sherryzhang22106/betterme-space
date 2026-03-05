@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
 import CodesManagement from './CodesManagement';
 
 interface Stats {
@@ -39,10 +38,16 @@ const AdminDashboard: React.FC = () => {
 
   // 初始化：检查登录状态
   useEffect(() => {
+    console.log('AdminDashboard 初始化...');
     const token = localStorage.getItem('admin_token');
     const user = localStorage.getItem('admin_user');
 
+    console.log('读取 localStorage:');
+    console.log('  Token:', token ? '✅ 存在' : '❌ 不存在');
+    console.log('  User:', user ? '✅ 存在' : '❌ 不存在');
+
     if (!token || !user) {
+      console.log('未登录，跳转到登录页');
       navigate('/admin/login');
       return;
     }
@@ -50,6 +55,7 @@ const AdminDashboard: React.FC = () => {
     try {
       setAdminUser(JSON.parse(user));
       setIsInitialized(true);
+      console.log('初始化完成');
     } catch (err) {
       console.error('解析用户信息失败:', err);
       localStorage.removeItem('admin_token');
