@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { code, productId, userId } = req.body;
+    const { code, productId, productName, userId } = req.body;
 
     if (!code || !productId) {
       return res.status(400).json({ success: false, message: '缺少必要参数' });
@@ -48,21 +48,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, message: '兑换码已过期' });
     }
 
-    // 检查产品是否匹配
-    if (redemptionCode.product_id !== productId) {
-      return res.status(400).json({
-        success: false,
-        message: `此兑换码仅适用于「${redemptionCode.product_name}」`,
-        validProduct: redemptionCode.product_name
-      });
-    }
-
-    // 标记为已使用
+    // 标记为已使用，并记录使用的产品
     await sql`
       UPDATE redemption_codes
       SET status = 'used',
           used_by = ${userId || null},
-          used_at = NOW()
+          used_at = NOW(),
+          used_for_product_id = ${productId},
+          used_for_product_name = ${productName || null}
       WHERE id = ${redemptionCode.id}
     `;
 
@@ -79,8 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       message: '兑换成功',
       data: {
-        productId: redemptionCode.product_id,
-        productName: redemptionCode.product_name
+        productId: productId,
+        productName: productName
       }
     });
 

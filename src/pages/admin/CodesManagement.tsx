@@ -33,10 +33,8 @@ const CodesManagement: React.FC = () => {
 
   const token = localStorage.getItem('admin_token');
 
-  // 生成兑换码表单
+  // 生成兑换码表单（通用兑换码，不绑定产品）
   const [generateForm, setGenerateForm] = useState({
-    productId: 'attachment-style',
-    productName: '依恋风格',
     count: 10,
     batchNo: '',
     notes: ''
@@ -45,24 +43,10 @@ const CodesManagement: React.FC = () => {
   // 兑换码列表
   const [codes, setCodes] = useState<RedemptionCode[]>([]);
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterProduct, setFilterProduct] = useState('');
 
   // 统计数据
   const [stats, setStats] = useState<CodeStats | null>(null);
   const [productStats, setProductStats] = useState<ProductStat[]>([]);
-
-  // 产品列表
-  const products = [
-    { id: 'attachment-style', name: '依恋风格' },
-    { id: 'love-health', name: '恋爱健康指数' },
-    { id: 'love-concentration', name: '爱情浓度' },
-    { id: 'breakup-recovery', name: '分手挽回可能性' },
-    { id: 'lying-flat', name: '躺平指数' },
-    { id: 'internal-friction', name: '内耗指数' },
-    { id: 'life-script', name: '人生剧本' },
-    { id: 'social-anxiety', name: '社恐/社牛指数' },
-    { id: 'perfectionism', name: '完美主义倾向' }
-  ];
 
   useEffect(() => {
     if (activeTab === 'stats') {
@@ -70,7 +54,7 @@ const CodesManagement: React.FC = () => {
     } else if (activeTab === 'list') {
       fetchCodes();
     }
-  }, [activeTab, filterStatus, filterProduct]);
+  }, [activeTab, filterStatus]);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -94,7 +78,6 @@ const CodesManagement: React.FC = () => {
     try {
       const params = new URLSearchParams({ action: 'list' });
       if (filterStatus) params.append('status', filterStatus);
-      if (filterProduct) params.append('productId', filterProduct);
 
       const res = await fetch(`/api/admin/codes?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -110,8 +93,8 @@ const CodesManagement: React.FC = () => {
   };
 
   const handleGenerate = async () => {
-    if (!generateForm.productId || !generateForm.productName || generateForm.count < 1) {
-      alert('请填写完整信息');
+    if (generateForm.count < 1) {
+      alert('请输入有效的生成数量');
       return;
     }
 
@@ -144,13 +127,13 @@ const CodesManagement: React.FC = () => {
   };
 
   const downloadCodes = (codes: any[]) => {
-    const content = codes.map(c => `${c.code}\t${c.product_name}\t${c.created_at}`).join('\n');
-    const header = '兑换码\t产品名称\t生成时间\n';
+    const content = codes.map(c => `${c.code}\t${c.created_at}`).join('\n');
+    const header = '兑换码\t生成时间\n';
     const blob = new Blob([header + content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `兑换码_${generateForm.productName}_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `通用兑换码_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -230,28 +213,13 @@ const CodesManagement: React.FC = () => {
       {/* 生成兑换码 */}
       {activeTab === 'generate' && (
         <div className="bg-white rounded-2xl shadow-sm p-6 max-w-2xl">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">批量生成兑换码</h3>
+          <h3 className="text-lg font-bold text-slate-800 mb-6">批量生成通用兑换码</h3>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              💡 <strong>通用兑换码：</strong>生成的兑换码可用于任何测评产品，用户可自由选择使用，每个兑换码只能使用一次。
+            </p>
+          </div>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">选择产品</label>
-              <select
-                value={generateForm.productId}
-                onChange={(e) => {
-                  const product = products.find(p => p.id === e.target.value);
-                  setGenerateForm({
-                    ...generateForm,
-                    productId: e.target.value,
-                    productName: product?.name || ''
-                  });
-                }}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary"
-              >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">生成数量</label>
               <input
@@ -312,17 +280,6 @@ const CodesManagement: React.FC = () => {
               <option value="used">已使用</option>
               <option value="expired">已过期</option>
             </select>
-
-            <select
-              value={filterProduct}
-              onChange={(e) => setFilterProduct(e.target.value)}
-              className="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            >
-              <option value="">全部产品</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
           </div>
 
           {/* 列表 */}
@@ -331,7 +288,7 @@ const CodesManagement: React.FC = () => {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">兑换码</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">产品</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">使用产品</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">批次号</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">状态</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">使用时间</th>
@@ -349,7 +306,9 @@ const CodesManagement: React.FC = () => {
                       <td className="px-6 py-4">
                         <code className="text-sm font-mono bg-slate-100 px-2 py-1 rounded">{code.code}</code>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-700">{code.product_name}</td>
+                      <td className="px-6 py-4 text-sm text-slate-700">
+                        {code.used_for_product_name || <span className="text-slate-400">通用（未使用）</span>}
+                      </td>
                       <td className="px-6 py-4 text-sm text-slate-500">{code.batch_no || '-'}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 text-xs font-bold rounded-lg ${

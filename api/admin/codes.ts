@@ -53,13 +53,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { action } = req.query;
 
   try {
-    // 生成兑换码
+    // 生成兑换码（通用兑换码，不绑定特定产品）
     if (action === 'generate' && req.method === 'POST') {
-      const { productId, productName, count = 1, batchNo, expiresAt, notes } = req.body;
-
-      if (!productId || !productName) {
-        return res.status(400).json({ success: false, message: '缺少必要参数' });
-      }
+      const { count = 1, batchNo, expiresAt, notes } = req.body;
 
       if (count < 1 || count > 1000) {
         return res.status(400).json({ success: false, message: '生成数量必须在 1-1000 之间' });
@@ -78,16 +74,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       for (const code of codes) {
         const [result] = await sql`
-          INSERT INTO redemption_codes (code, product_id, product_name, batch_no, created_by, expires_at, notes)
-          VALUES (${code}, ${productId}, ${productName}, ${batchNo || null}, ${auth.adminId}, ${expiresAt || null}, ${notes || null})
-          RETURNING id, code, product_id, product_name, batch_no, status, created_at
+          INSERT INTO redemption_codes (code, batch_no, created_by, expires_at, notes)
+          VALUES (${code}, ${batchNo || null}, ${auth.adminId}, ${expiresAt || null}, ${notes || null})
+          RETURNING id, code, batch_no, status, created_at
         `;
         generatedCodes.push(result);
       }
 
       return res.status(200).json({
         success: true,
-        message: `成功生成 ${count} 个兑换码`,
+        message: `成功生成 ${count} 个通用兑换码`,
         codes: generatedCodes
       });
     }
