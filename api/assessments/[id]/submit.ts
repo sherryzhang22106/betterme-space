@@ -7,23 +7,28 @@ const JWT_SECRET = process.env.JWT_SECRET || 'betterme-secret-key';
 
 // 获取数据库中的评分规则
 async function getScoringRules(assessmentId: string) {
-  const rules = await sql`
-    SELECT min_score, max_score, result_title, result_content, result_tags
-    FROM scoring_rules
-    WHERE theme_id = ${assessmentId}
-    ORDER BY order_num, min_score
-  `;
-  return rules.map((r, i) => ({
-    id: `r${i + 1}`,
-    min: r.min_score,
-    max: r.max_score,
-    title: r.result_title,
-    description: r.result_content,
-    tags: r.result_tags ? JSON.parse(r.result_tags) : []
-  }));
+  try {
+    const rules = await sql`
+      SELECT min_score, max_score, result_title, result_content, result_tags
+      FROM scoring_rules
+      WHERE theme_id = ${assessmentId}
+      ORDER BY order_num, min_score
+    `;
+    return rules.map((r, i) => ({
+      id: `r${i + 1}`,
+      min: r.min_score,
+      max: r.max_score,
+      title: r.result_title,
+      description: r.result_content,
+      tags: r.result_tags ? JSON.parse(r.result_tags) : []
+    }));
+  } catch (e) {
+    console.error('Error getting scoring rules:', e);
+    return [];
+  }
 }
 
-// 备用配置（当数据库没有数据时使用）
+// 备用配置
 const RESULT_CONFIGS: Record<string, any[]> = {
   'mbti-core': [
     { id: 'r1', min: 0, max: 3, title: '内向思考型', description: '你倾向于独处和深度思考，善于分析问题。在需要深入研究的领域中表现出色。', tags: ['深度思考', '独立'] },
@@ -45,35 +50,30 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ success: false, error: '请提交答案' });
     }
 
-    // 获取评分规则（优先数据库，其次硬编码）
-    let results = await getScoringRules(id as string);
-    if (results.length === 0) {
-      results = RESULT_CONFIGS[id as string] || [];
-    }
-
     // 计算分数 - 支持多种选项格式
     let score = 0;
+
     for (const [key, value] of Object.entries(answers)) {
-      // 如果值是数字，直接加
+      // 如果值是数字，直接加（量表题）
       if (typeof value === 'number') {
         score += value;
       }
-      // 如果值是选项 ID，尝试从答案中获取分值
+      // 如果值是字符串（选项 ID 格式 q{qId}_o{optionId}）
       else if (typeof value === 'string') {
         // 格式: q{questionId}_o{optionId}
         const match = value.match(/^q\d+_o(\d+)$/);
         if (match) {
-          // 从数据库获取选项分值
-          const optionId = parseInt(match[1]);
-          const options = await sql`
-            SELECT option_value FROM question_options WHERE id = ${optionId}
-          `;
-          if (options.length > 0) {
-            score += options[0].option_value;
+          const optionId = parseInt(match[1], 10);
+          try {
+            const options = await sql`
+              SELECT option_value FROM question_options WHERE id = ${optionId}
+            `;
+            if (options.length > 0) {
+              score += Number(options[0].option_value);
+            }
+          } catch (e) {
+            console.error('Error getting option value:', e);
           }
-        } else if (value.includes('_a')) {
-          // 兼容旧格式
-          score += 1;
         }
       }
       // 如果是多选题（数组）
@@ -84,12 +84,16 @@ export default async function handler(req: any, res: any) {
           } else if (typeof v === 'string') {
             const match = v.match(/^q\d+_o(\d+)$/);
             if (match) {
-              const optionId = parseInt(match[1]);
-              const options = await sql`
-                SELECT option_value FROM question_options WHERE id = ${optionId}
-              `;
-              if (options.length > 0) {
-                score += options[0].option_value;
+              const optionId = parseInt(match[1], 10);
+              try {
+                const options = await sql`
+                  SELECT option_value FROM question_options WHERE id = ${optionId}
+                `;
+                if (options.length > 0) {
+                  score += Number(options[0].option_value);
+                }
+              } catch (e) {
+                console.error('Error getting option value:', e);
               }
             }
           }
@@ -97,10 +101,16 @@ export default async function handler(req: any, res: any) {
       }
     }
 
+    // 获取评分规则
+    let results = await getScoringRules(id as string);
+    if (results.length === 0) {
+      results = RESULT_CONFIGS[id as string] || [];
+    }
+
     // 匹配结果
     const result = results.find(r => score >= r.min && score <= r.max) || results[0];
 
-    // 获取用户 ID（如果已登录）
+    // 获取用户 ID
     let userId = null;
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -114,42 +124,51 @@ export default async function handler(req: any, res: any) {
     }
 
     // 检查是否启用 AI 解析
-    const [theme] = await sql`
-      SELECT ai_enabled FROM themes WHERE id = ${id as string}
-    `;
-    const aiEnabled = theme?.ai_enabled || false;
-
-    // 保存记录
-    const record = await sql`
-      INSERT INTO assessment_records (user_id, assessment_id, theme_id, answers, score, result_id, result_title, result_content, duration, ai_status)
-      VALUES (${userId}, ${id}, ${id}, ${JSON.stringify(answers)}, ${score}, ${result?.id || null}, ${result?.title || null}, ${result?.description || null}, ${duration || null}, ${aiEnabled ? 'pending' : 'none'})
-      RETURNING id
-    `;
-
-    const recordId = record[0].id;
-
-    // 如果启用 AI 解析，异步生成（不阻塞返回）
-    if (aiEnabled && result) {
-      // 异步调用 AI 解析，不等待完成
-      updateAIAnalysisAsync(
-        recordId,
-        id as string,
-        answers,
-        score,
-        result.title,
-        result.description || ''
-      ).catch(err => console.error('AI analysis failed:', err));
+    let aiEnabled = false;
+    try {
+      const [theme] = await sql`
+        SELECT ai_enabled FROM themes WHERE id = ${id as string}
+      `;
+      aiEnabled = theme?.ai_enabled || false;
+    } catch (e) {
+      console.error('Error getting theme:', e);
     }
 
-    // 更新统计
-    await sql`
-      INSERT INTO assessment_stats (assessment_id, total_count, avg_score, updated_at)
-      VALUES (${id}, 1, ${score}, NOW())
-      ON CONFLICT (assessment_id) DO UPDATE SET
-        total_count = assessment_stats.total_count + 1,
-        avg_score = (assessment_stats.avg_score * assessment_stats.total_count + ${score}) / (assessment_stats.total_count + 1),
-        updated_at = NOW()
-    `;
+    // 保存记录
+    let recordId = 'temp-' + Date.now();
+    try {
+      const record = await sql`
+        INSERT INTO assessment_records (user_id, assessment_id, theme_id, answers, score, result_id, result_title, result_content, duration, ai_status)
+        VALUES (${userId}, ${id}, ${id}, ${JSON.stringify(answers)}, ${score}, ${result?.id || null}, ${result?.title || null}, ${result?.description || null}, ${duration || null}, ${aiEnabled ? 'pending' : 'none'})
+        RETURNING id
+      `;
+      recordId = record[0].id;
+
+      // 如果启用 AI 解析，异步生成
+      if (aiEnabled && result) {
+        updateAIAnalysisAsync(
+          recordId,
+          id as string,
+          answers,
+          score,
+          result.title,
+          result.description || ''
+        ).catch(err => console.error('AI analysis failed:', err));
+      }
+
+      // 更新统计
+      await sql`
+        INSERT INTO assessment_stats (assessment_id, total_count, avg_score, updated_at)
+        VALUES (${id}, 1, ${score}, NOW())
+        ON CONFLICT (assessment_id) DO UPDATE SET
+          total_count = assessment_stats.total_count + 1,
+          avg_score = (assessment_stats.avg_score * assessment_stats.total_count + ${score}) / (assessment_stats.total_count + 1),
+          updated_at = NOW()
+      `;
+    } catch (e) {
+      console.error('Error saving record:', e);
+      // 即使保存失败，也返回结果
+    }
 
     return res.status(200).json({
       success: true,
