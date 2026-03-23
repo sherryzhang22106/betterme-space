@@ -52,6 +52,13 @@ const QuizPage: React.FC = () => {
 
   const handleAnswer = (questionId: string, value: any, optionValue?: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
+
+    // 自动跳转到下一题（如果不是最后一题）
+    if (!isLastQuestion) {
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+      }, 300); // 300ms 延迟，让用户看到选中效果
+    }
   };
 
   const handleNext = () => {
