@@ -43,11 +43,14 @@ export default async function handler(req: any, res: any) {
         r.result_id as "resultId",
         r.result_title as "resultTitle",
         r.result_content as "resultContent",
+        r.ai_analysis,
+        r.ai_status,
         r.duration,
         r.created_at as "createdAt",
         t.name as "assessmentName",
         t.description as "assessmentDescription",
-        t.cover_image as "assessmentCover"
+        t.cover_image as "assessmentCover",
+        t.ai_enabled as "aiEnabled"
       FROM assessment_records r
       LEFT JOIN themes t ON r.theme_id = t.id
       WHERE r.id = ${id}
@@ -127,6 +130,11 @@ export default async function handler(req: any, res: any) {
         description: '查看完整结果详情',
         score: record.score,
         tags: []
+      },
+      ai: {
+        enabled: record.aiEnabled || false,
+        status: record.ai_status || 'none',
+        analysis: record.ai_analysis || null
       }
     });
   } catch (error: any) {

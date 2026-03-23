@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import jwt from 'jsonwebtoken';
+import { updateAIAnalysisAsync } from '../../ai';
 
 const sql = neon(process.env.DATABASE_URL!);
 const JWT_SECRET = process.env.JWT_SECRET || 'betterme-secret-key';
@@ -112,12 +113,33 @@ export default async function handler(req: any, res: any) {
       }
     }
 
+    // 检查是否启用 AI 解析
+    const [theme] = await sql`
+      SELECT ai_enabled FROM themes WHERE id = ${id as string}
+    `;
+    const aiEnabled = theme?.ai_enabled || false;
+
     // 保存记录
     const record = await sql`
-      INSERT INTO assessment_records (user_id, assessment_id, theme_id, answers, score, result_id, result_title, result_content, duration)
-      VALUES (${userId}, ${id}, ${id}, ${JSON.stringify(answers)}, ${score}, ${result?.id || null}, ${result?.title || null}, ${result?.description || null}, ${duration || null})
+      INSERT INTO assessment_records (user_id, assessment_id, theme_id, answers, score, result_id, result_title, result_content, duration, ai_status)
+      VALUES (${userId}, ${id}, ${id}, ${JSON.stringify(answers)}, ${score}, ${result?.id || null}, ${result?.title || null}, ${result?.description || null}, ${duration || null}, ${aiEnabled ? 'pending' : 'none'})
       RETURNING id
     `;
+
+    const recordId = record[0].id;
+
+    // 如果启用 AI 解析，异步生成（不阻塞返回）
+    if (aiEnabled && result) {
+      // 异步调用 AI 解析，不等待完成
+      updateAIAnalysisAsync(
+        recordId,
+        id as string,
+        answers,
+        score,
+        result.title,
+        result.description || ''
+      ).catch(err => console.error('AI analysis failed:', err));
+    }
 
     // 更新统计
     await sql`
@@ -131,8 +153,9 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({
       success: true,
-      recordId: record[0].id,
+      recordId,
       score,
+      aiEnabled,
       result: result ? {
         title: result.title,
         description: result.description,

@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS themes (
   status VARCHAR(20) DEFAULT 'active', -- active | inactive | draft
   question_count INT DEFAULT 0,
   estimated_time INT, -- 预计完成时间（分钟）
+  ai_enabled BOOLEAN DEFAULT false, -- 是否启用 AI 解析
+  ai_system_prompt TEXT, -- AI 系统提示词
+  ai_model VARCHAR(50) DEFAULT 'deepseek-chat', -- AI 模型
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -90,6 +93,8 @@ CREATE TABLE IF NOT EXISTS assessment_records (
   result_id VARCHAR(50),
   result_title VARCHAR(100),
   result_content TEXT,
+  ai_analysis TEXT, -- AI 个性化解析
+  ai_status VARCHAR(20) DEFAULT 'pending', -- pending | generating | completed | failed
   duration INTEGER,
   poster_url VARCHAR(500),
   created_at TIMESTAMP DEFAULT NOW()
