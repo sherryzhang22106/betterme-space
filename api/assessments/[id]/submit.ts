@@ -1,6 +1,5 @@
 import { neon } from '@neondatabase/serverless';
 import jwt from 'jsonwebtoken';
-import { updateAIAnalysisAsync } from '../../ai';
 
 const sql = neon(process.env.DATABASE_URL!);
 const JWT_SECRET = process.env.JWT_SECRET || 'betterme-secret-key';
@@ -36,6 +35,66 @@ const RESULT_CONFIGS: Record<string, any[]> = {
   ]
 };
 
+// AI 解析
+async function generateAIAnalysis(themeId: string, answers: Record<string, any>, score: number, resultTitle: string, resultContent: string): Promise<string | null> {
+  try {
+    const [theme] = await sql`
+      SELECT name, ai_enabled, ai_system_prompt, ai_model
+      FROM themes WHERE id = ${themeId}
+    `;
+
+    if (!theme || !theme.ai_enabled || !theme.ai_system_prompt) {
+      return null;
+    }
+
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      console.log('DEEPSEEK_API_KEY not configured');
+      return null;
+    }
+
+    const answersText = Object.entries(answers)
+      .map(([k, v]) => `- ${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+      .join('\n');
+
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: theme.ai_model || 'deepseek-chat',
+        messages: [
+          { role: 'system', content: theme.ai_system_prompt },
+          {
+            role: 'user',
+            content: `用户完成了"${theme.name}"测评，以下是TA的答题情况和测评结果：
+
+【测评结果】
+类型：${resultTitle}
+基础解读：${resultContent}
+总分：${score}分
+
+【用户答案】
+${answersText}
+
+请基于以上信息，给出一段150-200字的个性化深度解析，帮助用户更好地理解自己的测评结果。`
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.8
+      })
+    });
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch (error) {
+    console.error('AI analysis error:', error);
+    return null;
+  }
+}
+
 export default async function handler(req: any, res: any) {
   const { id } = req.query;
 
@@ -50,52 +109,23 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ success: false, error: '请提交答案' });
     }
 
-    // 计算分数 - 支持多种选项格式
+    // 计算分数
     let score = 0;
 
     for (const [key, value] of Object.entries(answers)) {
-      // 如果值是数字，直接加（量表题）
       if (typeof value === 'number') {
         score += value;
-      }
-      // 如果值是字符串（选项 ID 格式 q{qId}_o{optionId}）
-      else if (typeof value === 'string') {
-        // 格式: q{questionId}_o{optionId}
+      } else if (typeof value === 'string') {
         const match = value.match(/^q\d+_o(\d+)$/);
         if (match) {
           const optionId = parseInt(match[1], 10);
           try {
-            const options = await sql`
-              SELECT option_value FROM question_options WHERE id = ${optionId}
-            `;
+            const options = await sql`SELECT option_value FROM question_options WHERE id = ${optionId}`;
             if (options.length > 0) {
               score += Number(options[0].option_value);
             }
           } catch (e) {
             console.error('Error getting option value:', e);
-          }
-        }
-      }
-      // 如果是多选题（数组）
-      else if (Array.isArray(value)) {
-        for (const v of value) {
-          if (typeof v === 'number') {
-            score += v;
-          } else if (typeof v === 'string') {
-            const match = v.match(/^q\d+_o(\d+)$/);
-            if (match) {
-              const optionId = parseInt(match[1], 10);
-              try {
-                const options = await sql`
-                  SELECT option_value FROM question_options WHERE id = ${optionId}
-                `;
-                if (options.length > 0) {
-                  score += Number(options[0].option_value);
-                }
-              } catch (e) {
-                console.error('Error getting option value:', e);
-              }
-            }
           }
         }
       }
@@ -126,9 +156,7 @@ export default async function handler(req: any, res: any) {
     // 检查是否启用 AI 解析
     let aiEnabled = false;
     try {
-      const [theme] = await sql`
-        SELECT ai_enabled FROM themes WHERE id = ${id as string}
-      `;
+      const [theme] = await sql`SELECT ai_enabled FROM themes WHERE id = ${id as string}`;
       aiEnabled = theme?.ai_enabled || false;
     } catch (e) {
       console.error('Error getting theme:', e);
@@ -136,18 +164,25 @@ export default async function handler(req: any, res: any) {
 
     // 保存记录
     let recordId = 'temp-' + Date.now();
+    let aiAnalysis: string | null = null;
+
     try {
       const record = await sql`
         INSERT INTO assessment_records (user_id, assessment_id, theme_id, answers, score, result_id, result_title, result_content, duration, ai_status)
-        VALUES (${userId}, ${id}, ${id}, ${JSON.stringify(answers)}, ${score}, ${result?.id || null}, ${result?.title || null}, ${result?.description || null}, ${duration || null}, ${aiEnabled ? 'pending' : 'none'})
+        VALUES (${userId}, ${id}, ${id}, ${JSON.stringify(answers)}, ${score}, ${result?.id || null}, ${result?.title || null}, ${result?.description || null}, ${duration || null}, ${aiEnabled ? 'generating' : 'none'})
         RETURNING id
       `;
       recordId = record[0].id;
 
-      // AI 解析暂时禁用，避免超时
-      // if (aiEnabled && result && recordId) {
-      //   updateAIAnalysisAsync(...).catch(err => console.error('AI analysis failed:', err));
-      // }
+      // 生成 AI 解析
+      if (aiEnabled && result) {
+        aiAnalysis = await generateAIAnalysis(id as string, answers, score, result.title, result.description || '');
+        await sql`
+          UPDATE assessment_records
+          SET ai_analysis = ${aiAnalysis}, ai_status = ${aiAnalysis ? 'completed' : 'failed'}
+          WHERE id = ${recordId}
+        `;
+      }
 
       // 更新统计
       await sql`
@@ -160,7 +195,6 @@ export default async function handler(req: any, res: any) {
       `;
     } catch (e) {
       console.error('Error saving record:', e);
-      // 即使保存失败，也返回结果
     }
 
     return res.status(200).json({
@@ -173,7 +207,8 @@ export default async function handler(req: any, res: any) {
         description: result.description,
         tags: result.tags,
         score
-      } : null
+      } : null,
+      aiAnalysis
     });
   } catch (error: any) {
     console.error('Submit assessment error:', error);
