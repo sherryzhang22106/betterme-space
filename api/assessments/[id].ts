@@ -2,7 +2,88 @@ import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.DATABASE_URL!);
 
-// 示例测评配置（后续可以从数据库或文件读取）
+// 从数据库读取评测配置
+async function getAssessmentConfig(id: string) {
+  // 查询主题信息
+  const themes = await sql`
+    SELECT id, name, description, cover_image, price, question_count, estimated_time
+    FROM themes
+    WHERE id = ${id} AND status = 'active'
+  `;
+
+  if (themes.length === 0) {
+    return null;
+  }
+
+  const theme = themes[0];
+
+  // 查询题目
+  const questions = await sql`
+    SELECT id, order_num, question_text, question_type, is_required
+    FROM questions
+    WHERE theme_id = ${id}
+    ORDER BY order_num
+  `;
+
+  // 查询所有选项
+  const options = await sql`
+    SELECT o.id, o.question_id, o.option_text, o.option_value, o.order_num
+    FROM question_options o
+    INNER JOIN questions q ON o.question_id = q.id
+    WHERE q.theme_id = ${id}
+    ORDER BY o.order_num
+  `;
+
+  // 查询评分规则
+  const scoringRules = await sql`
+    SELECT min_score, max_score, result_title, result_content, result_tags
+    FROM scoring_rules
+    WHERE theme_id = ${id}
+    ORDER BY order_num, min_score
+  `;
+
+  // 组装配置
+  const questionsWithOptions = questions.map(q => {
+    const questionOptions = options
+      .filter(o => o.question_id === q.id)
+      .map(o => ({
+        id: `q${q.id}_o${o.id}`,
+        label: o.option_text,
+        value: o.option_value
+      }));
+
+    return {
+      id: `q${q.id}`,
+      type: q.question_type === 'single_choice' ? 'single' : q.question_type === 'multiple_choice' ? 'multiple' : 'scale',
+      content: q.question_text,
+      required: q.is_required,
+      options: questionOptions.length > 0 ? questionOptions : undefined
+    };
+  });
+
+  const results = scoringRules.map(r => ({
+    id: `r${scoringRules.indexOf(r) + 1}`,
+    min: r.min_score,
+    max: r.max_score,
+    title: r.result_title,
+    description: r.result_content,
+    tags: r.result_tags ? JSON.parse(r.result_tags) : []
+  }));
+
+  return {
+    id: theme.id,
+    title: theme.name,
+    description: theme.description,
+    coverImage: theme.cover_image,
+    price: theme.price,
+    estimatedTime: theme.estimated_time,
+    questions: questionsWithOptions,
+    scoring: { method: 'sum' },
+    results
+  };
+}
+
+// 备用硬编码配置（当数据库没有数据时使用）
 const ASSESSMENT_CONFIGS: Record<string, any> = {
   'mbti-core': {
     id: 'mbti-core',
@@ -49,7 +130,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const config = ASSESSMENT_CONFIGS[id as string];
+    // 优先从数据库读取
+    const dbConfig = await getAssessmentConfig(id as string);
+    const config = dbConfig || ASSESSMENT_CONFIGS[id as string];
 
     if (!config) {
       return res.status(404).json({ success: false, error: '测评不存在' });

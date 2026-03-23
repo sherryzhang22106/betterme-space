@@ -16,6 +16,9 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AssessmentDetail from './pages/assessment/AssessmentDetail';
 import QuizPage from './pages/assessment/QuizPage';
 import ResultPage from './pages/assessment/ResultPage';
+import ThemeList from './pages/ThemeList';
+import UniversalAssessment from './pages/UniversalAssessment';
+import AssessmentResult from './pages/AssessmentResult';
 import { ASSESSMENTS } from './constants';
 import { AssessmentCategory } from './types';
 
@@ -186,6 +189,9 @@ const App: React.FC = () => {
           <Route path="/assessment/:id" element={<AssessmentDetail />} />
           <Route path="/assessment/:id/quiz" element={<QuizPage />} />
           <Route path="/assessment/:id/result/:recordId" element={<ResultPage />} />
+          <Route path="/themes" element={<ThemeList />} />
+          <Route path="/assessment/:themeId" element={<UniversalAssessment />} />
+          <Route path="/assessment/:themeId/result/:recordId" element={<AssessmentResult />} />
           <Route path="/assessment-center" element={<AssessmentCenter onBack={() => navigate('/')} />} />
           <Route path="/ai-principles" element={<AIPrinciples onBack={() => navigate('/')} />} />
           <Route path="/terms/:type" element={<TermsWrapper />} />

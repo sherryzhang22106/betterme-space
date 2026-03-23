@@ -15,13 +15,13 @@ interface AssessmentConfig {
   title: string;
   questions: Question[];
   scoring: { method: string };
-  results: { id: string; min: number; max: number; title: string; description: string }[];
+  results: { id: string; min: number; max: number; title: string; description: string; tags?: string[] }[];
 }
 
 const QuizPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isLoggedIn } = useAuthStore();
+  const { user, isLoggedIn, token } = useAuthStore();
 
   const [config, setConfig] = useState<AssessmentConfig | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -50,7 +50,7 @@ const QuizPage: React.FC = () => {
     setLoading(false);
   };
 
-  const handleAnswer = (questionId: string, value: any) => {
+  const handleAnswer = (questionId: string, value: any, optionValue?: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
 
@@ -72,11 +72,30 @@ const QuizPage: React.FC = () => {
     setSubmitting(true);
     const duration = Math.floor((Date.now() - startTime) / 1000);
 
+    // 构建提交数据：使用选项的完整 ID（包含数据库 ID）
+    const submitAnswers: Record<string, any> = {};
+    for (const [questionId, answer] of Object.entries(answers)) {
+      if (config.questions.find(q => q.id === questionId)?.type === 'scale') {
+        // 量表题直接使用数值
+        submitAnswers[questionId] = answer;
+      } else {
+        // 选择题使用选项 ID
+        submitAnswers[questionId] = answer;
+      }
+    }
+
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`/api/assessments/${id}/submit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers, duration })
+        headers,
+        body: JSON.stringify({ answers: submitAnswers, duration })
       });
       const data = await res.json();
 
@@ -86,6 +105,7 @@ const QuizPage: React.FC = () => {
         alert(data.error || '提交失败');
       }
     } catch (error) {
+      console.error('Submit error:', error);
       alert('提交失败，请重试');
     }
     setSubmitting(false);
