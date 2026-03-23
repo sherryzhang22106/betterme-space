@@ -144,19 +144,10 @@ export default async function handler(req: any, res: any) {
       `;
       recordId = record[0].id;
 
-      // 如果启用 AI 解析，异步生成（使用 setTimeout 确保不阻塞）
-      if (aiEnabled && result && recordId) {
-        setTimeout(() => {
-          updateAIAnalysisAsync(
-            recordId,
-            id as string,
-            answers,
-            score,
-            result.title,
-            result.description || ''
-          ).catch(err => console.error('AI analysis failed:', err));
-        }, 100); // 100ms 延迟确保响应先返回
-      }
+      // AI 解析暂时禁用，避免超时
+      // if (aiEnabled && result && recordId) {
+      //   updateAIAnalysisAsync(...).catch(err => console.error('AI analysis failed:', err));
+      // }
 
       // 更新统计
       await sql`
