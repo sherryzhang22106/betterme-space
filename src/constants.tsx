@@ -26,6 +26,7 @@ export const ASSESSMENTS: Assessment[] = [
   { id: 'love-concentration', title: '爱情浓度', description: '量化当下的爱意深度，看看你们正处于哪个阶段。', category: AssessmentCategory.LOVE, icon: <Icons.Love />, count: '4.2w+', timeEstimate: '5 min', difficulty: '简单' },
   { id: 'breakup-recovery', title: '分手挽回可能性', description: '理性的情感回溯评估，TA还值得你回头吗？', category: AssessmentCategory.LOVE, icon: <Icons.Love />, count: '24.1w+', timeEstimate: '15 min', difficulty: '深度' },
   { id: 'attachment-style', title: '依恋风格', description: '深度挖掘你的内在安全感来源与互动模式。', category: AssessmentCategory.LOVE, icon: <Icons.Love />, count: '11.3w+', timeEstimate: '10 min', difficulty: '深度', hot: true },
+  { id: 'love-possessiveness', title: '恋爱占有欲', description: '了解你在恋爱中的占有欲程度，从五大维度深度分析你的情感模式。', category: AssessmentCategory.LOVE, icon: <Icons.Love />, count: 'NEW', timeEstimate: '5 min', difficulty: '简单', hot: true },
 
   // 职场发展
   { id: 'burnout', title: '职场倦怠指数', description: '评估你的职业疲劳度。', category: AssessmentCategory.CAREER, icon: <Icons.Career />, isLocked: true, timeEstimate: '5 min', difficulty: '简单' },
